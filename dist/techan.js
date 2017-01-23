@@ -1,9 +1,9 @@
 /*
- TechanJS v0.9.0-0
- (c) 2014 - 2016 Andre Dumas | https://github.com/andredumas/techan.js
+ TechanJS v0.9.0-3
+ (c) 2014 - 2017 Andre Dumas | https://github.com/andredumas/techan.js
 */
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.techan = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-'use strict';module.exports='0.9.0-0';
+'use strict';module.exports='0.9.0-3';
 },{}],2:[function(require,module,exports){
 'use strict';
 
@@ -560,8 +560,7 @@ module.exports = function() {
       stochasticK = function(d) { return d.stochasticK; },
       stochasticD = function(d) { return d.stochasticD; },
       overbought = function(d) { return d.overbought; },
-      oversold = function(d) { return d.oversold; },
-      middle = function(d) { return d.middle; };
+      oversold = function(d) { return d.oversold; };
 
   function accessor(d) {
     return accessor.r(d);
@@ -596,25 +595,19 @@ module.exports = function() {
     return bind();
   };
 
-  accessor.middle = function(_) {
-    if (!arguments.length) return middle;
-    middle = _;
-    return bind();
-  };
-
   function bind() {
     accessor.d = date;
     accessor.k = stochasticK;
     accessor.sd = stochasticD;
     accessor.ob = overbought;
     accessor.os = oversold;
-    accessor.m = middle;
 
     return accessor;
   }
 
   return bind();
 };
+
 },{}],13:[function(require,module,exports){
 'use strict';
 
@@ -1707,7 +1700,6 @@ module.exports = function(indicatorMixin, accessor_ohlc) {  // Injected dependen
     var p = {},  // Container for private, direct access mixed in variables
         periodD = 3,
         overbought = 80,
-        middle = 50,
         oversold = 20;
 
     function indicator(data) {
@@ -1742,9 +1734,9 @@ module.exports = function(indicatorMixin, accessor_ohlc) {  // Injected dependen
           }
           var stochasticK =stochasticKBuffer[0];// ((d.close-min)/(max-min))*100;
           stochasticD /= periodD;
-          return datum(p.accessor.d(d), stochasticK,stochasticD, middle, overbought, oversold);
+          return datum(p.accessor.d(d), stochasticK,stochasticD, overbought, oversold);
         }
-        else return datum(p.accessor.d(d), null, null, middle,overbought,oversold);
+        else return datum(p.accessor.d(d), null, null, overbought, oversold);
       }).filter(function(d) { return d.stochasticK; });
     }
 
@@ -1757,12 +1749,6 @@ module.exports = function(indicatorMixin, accessor_ohlc) {  // Injected dependen
     indicator.overbought = function(_) {
       if (!arguments.length) return overbought;
       overbought = _;
-      return indicator;
-    };
-
-    indicator.middle = function(_) {
-      if (!arguments.length) return middle;
-      middle = _;
       return indicator;
     };
 
@@ -1782,9 +1768,9 @@ module.exports = function(indicatorMixin, accessor_ohlc) {  // Injected dependen
   };
 };
 
-function datum(date, stochasticK,stochasticD, middle, overbought, oversold) {
-  if(stochasticK) return { date: date, stochasticK: stochasticK,stochasticD:stochasticD, middle: middle, overbought: overbought, oversold: oversold };
-  else return { date: date, stochasticK: null,stochasticD:null, middle: middle, overbought: overbought, oversold: oversold };
+function datum(date, stochasticK, stochasticD, overbought, oversold) {
+  if(stochasticK) return { date: date, stochasticK: stochasticK, stochasticD: stochasticD, overbought: overbought, oversold: oversold };
+  else return { date: date, stochasticK: null, stochasticD: null, overbought: overbought, oversold: oversold };
 }
 
 },{}],35:[function(require,module,exports){
@@ -3245,27 +3231,26 @@ function refresh(selection, accessor, x, y, plot, rsiLine) {
 module.exports = function(accessor_stochastic, plot, plotMixin) {  // Injected dependencies
   return function() { // Closure function
     var p = {},  // Container for private, direct access mixed in variables
-        stochUpLine = plot.pathLine(),
-        stochDownLine = plot.pathLine();
+        kLine = plot.pathLine(),
+        dLine = plot.pathLine();
 
     function stochastic(g) {
       var group = p.dataSelector(g);
 
       group.entry.append('path').attr('class', 'overbought');
       group.entry.append('path').attr('class', 'oversold');
-      group.entry.append('path').attr('class', 'stochastic up');
-      group.entry.append('path').attr('class', 'stochastic down');
+      group.entry.append('path').attr('class', 'stochastic k');
+      group.entry.append('path').attr('class', 'stochastic d');
       stochastic.refresh(g);
     }
 
     stochastic.refresh = function(g) {
-      refresh(p.dataSelector.select(g), p.accessor, p.xScale, p.yScale, plot, stochUpLine,
-              stochDownLine);
+      refresh(p.dataSelector.select(g), p.accessor, p.xScale, p.yScale, plot, kLine, dLine);
     };
 
     function binder() {
-      stochUpLine.init(p.accessor.d, p.xScale, p.accessor.k, p.yScale);
-      stochDownLine.init(p.accessor.d, p.xScale, p.accessor.sd, p.yScale);
+      kLine.init(p.accessor.d, p.xScale, p.accessor.k, p.yScale);
+      dLine.init(p.accessor.d, p.xScale, p.accessor.sd, p.yScale);
     }
 
     // Mixin 'superclass' methods and variables
@@ -3276,11 +3261,11 @@ module.exports = function(accessor_stochastic, plot, plotMixin) {  // Injected d
   };
 };
 
-function refresh(selection, accessor, x, y, plot, stochUpLine, stochDownLine) {
+function refresh(selection, accessor, x, y, plot, kLine, dLine) {
   selection.select('path.overbought').attr('d', plot.horizontalPathLine(accessor.d, x, accessor.ob, y));
   selection.select('path.oversold').attr('d', plot.horizontalPathLine(accessor.d, x, accessor.os, y));
-  selection.select('path.stochastic.up').attr('d', stochUpLine);
-  selection.select('path.stochastic.down').attr('d', stochDownLine);
+  selection.select('path.stochastic.k').attr('d', kLine);
+  selection.select('path.stochastic.d').attr('d', dLine);
 }
 
 },{}],53:[function(require,module,exports){
@@ -4475,12 +4460,7 @@ module.exports = function(d3) {
 },{"../util":66,"./arrow":62}],64:[function(require,module,exports){
 'use strict';
 
-var _d3;
-
-// If running in browser (window !undefined), assume d3 available
-if('undefined' != typeof window) _d3 = window.d3;
-else if('object' == typeof module) _d3 = require('d3'); // else we're in the only other supported mode: v8/node
-else throw "Unsupported runtime environment: Could not find d3. Ensure defined globally on window, or available as dependency.";
+var _d3 = require('d3');
 
 module.exports = (function(d3) {
   return {
@@ -4492,6 +4472,7 @@ module.exports = (function(d3) {
     svg: require('./svg')(d3)
   };
 })(_d3);
+
 },{"../build/version":1,"./accessor":8,"./indicator":28,"./plot":45,"./scale":60,"./svg":63,"d3":"d3"}],65:[function(require,module,exports){
 'use strict';
 
